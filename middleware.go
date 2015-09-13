@@ -4,10 +4,18 @@ import (
 	"net/http"
 )
 
+var (
+	defaultHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+)
+
 type MiddlewareFunc func(http.Handler) http.Handler
 
 func (m MiddlewareFunc) Compose(next MiddlewareFunc) MiddlewareFunc {
 	return compose(m, next)
+}
+
+func (m MiddlewareFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	m(defaultHandler).ServeHTTP(w, r)
 }
 
 func Compose(middlewares ...MiddlewareFunc) MiddlewareFunc {

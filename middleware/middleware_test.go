@@ -71,7 +71,7 @@ func TestComposeAllComposeAll(t *testing.T) {
 }
 
 func TestFold(t *testing.T) {
-	runTest(fold(Compose, a, []MiddlewareFunc{b, c}), "ABC", t)
+	runTest(fold(Compose, a, []Middleware{b, c}), "ABC", t)
 }
 
 func runTest(h http.Handler, expected string, t *testing.T) {

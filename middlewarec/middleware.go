@@ -41,6 +41,14 @@ func (m Middleware) ServeHTTP(c context.Context, w http.ResponseWriter, r *http.
 	m(defaultHandler).ServeHTTP(c, w, r)
 }
 
+func (m Middleware) AsHttpHandler() http.Handler {
+	return NewAdapter(m)
+}
+
+func (m Middleware) AsHttpHandlerWithContext(c context.Context) http.Handler {
+	return NewAdapterWithContext(c, m)
+}
+
 func Id() Middleware {
 	return Middleware(func(next Handler) Handler {
 		return next

@@ -26,21 +26,21 @@ func getFromContext(c context.Context) string {
 func a(next Handler) Handler {
 	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 		ctx := appendToContext(c, "A")
-		next.ServeHTTP(ctx, w, r)
+		next.ServeHTTPC(ctx, w, r)
 	})
 }
 
 func b(next Handler) Handler {
 	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 		ctx := appendToContext(c, "B")
-		next.ServeHTTP(ctx, w, r)
+		next.ServeHTTPC(ctx, w, r)
 	})
 }
 
 func c(next Handler) Handler {
 	return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 		ctx := appendToContext(c, "C")
-		next.ServeHTTP(ctx, w, r)
+		next.ServeHTTPC(ctx, w, r)
 	})
 }
 
@@ -85,4 +85,11 @@ func TestComposeAllComposeALl(t *testing.T) {
 
 func TestFold(t *testing.T) {
 	testutils.RunTest(fold(Compose, a, []Middleware{b, c})(handler).AsHttpHandler(), "ABC", t)
+}
+
+func TestComposeWithContext(t *testing.T) {
+	ctx := context.WithValue(context.Background(), 0, "Z")
+
+	testutils.RunTest(ComposeAll(a, b, c)(handler).AsHttpHandlerWithContext(ctx), "ZABC", t)
+
 }

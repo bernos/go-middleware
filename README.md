@@ -127,7 +127,7 @@ func appendToContextValue(c context.Context, v string) context.Context {
 	return context.WithValue(c, key, newValue)
 }
 
-// Context aware middle funcs need to accept and return the custom middlewarec.Handler type
+// Context aware middleware funcs need to accept and return the custom middlewarec.Handler type
 func MyFirstMiddleware(h middlewarec.Handler) middlewarec.Handler {
 	return middlewarec.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTPC(appendToContextValue(c, "First\n"), w, r)

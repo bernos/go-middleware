@@ -2,9 +2,41 @@
 Composable http middleware for golang
 [![Build Status](https://travis-ci.org/bernos/go-middleware.svg)](https://travis-ci.org/bernos/go-middleware)
 
-# Examples
+Middleware is defined as
 
 ```golang
+type Middleware func(http.Handler) http.Handler
+```
+
+This package provides some composition functions to make building middleware "stacks" as simple as
+
+```go
+// Compose takes two middleware funcs and returns... a new middleware func!
+middlewareOneThenTwo := Compose(middlewareOne, middlewareTwo)
+
+// And stacks can be composed with themselves. We can use ComposeAll to compose more than two middleware funcs
+middlewareFive := ComposeAll(middlewareOneThenTwo, middlewareThree, middlewareFour)
+
+// Finally, we wrap a regular http.Handler with our middleware stack and get back a regular http.Handler
+finalHandler := middlewareFive(myHandler)
+```
+
+# Installation
+For the regular, garden variety, `http.Handler` compatible middleware, use
+
+```golang
+go get github.com/bernos/go-middleware/middleware
+```
+
+To support passing a `Context` from `golang.org/x/net/context` between middleware and handlers, use
+
+```golang
+go get github.com/bernos/go-middleware/middlewarec
+```
+
+# Examples
+## Basic middleware composition
+```go
 package main
 
 import (

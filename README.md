@@ -99,5 +99,93 @@ func main() {
 
 	http.ListenAndServe(":8080", nil)
 }
+```
 
+## Supporting a golang.org/x/net/context.Context
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/bernos/go-middleware/middlewarec"
+	"golang.org/x/net/context"
+	"net/http"
+)
+
+// Appends to the value stored in our context
+func appendToContextValue(c context.Context, v string) context.Context {
+	key := 0
+	currentValue, ok := c.Value(key).(string)
+
+	if !ok {
+		currentValue = ""
+	}
+
+	newValue := fmt.Sprintf("%s%s", currentValue, v)
+
+	return context.WithValue(c, key, newValue)
+}
+
+// Context aware middle funcs need to accept and return the custom middlewarec.Handler type
+func MyFirstMiddleware(h middlewarec.Handler) middlewarec.Handler {
+	return middlewarec.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTPC(appendToContextValue(c, "First\n"), w, r)
+	})
+}
+
+func MySecondMiddleware(h middlewarec.Handler) middlewarec.Handler {
+	return middlewarec.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTPC(appendToContextValue(c, "Second\n"), w, r)
+	})
+}
+
+func MyThirdMiddleware(h middlewarec.Handler) middlewarec.Handler {
+	return middlewarec.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTPC(appendToContextValue(c, "Third\n"), w, r)
+	})
+}
+
+func MyFourthMiddleware(h middlewarec.Handler) middlewarec.Handler {
+	return middlewarec.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTPC(appendToContextValue(c, "Fourth\n"), w, r)
+	})
+}
+
+func main() {
+	// Create a couple of middleware stacks using the Compose() function
+	stackOne := middlewarec.Compose(MyFirstMiddleware, MySecondMiddleware)
+	stackTwo := middlewarec.Compose(MyThirdMiddleware, MyFourthMiddleware)
+
+	// Middleware compositions can also be composed with themselves
+	stackThree := middlewarec.Compose(stackOne, stackTwo)
+
+	// Alternatively, we can use method chaining, if we prefer
+	stackFour := middlewarec.Middleware(MyFirstMiddleware).
+		Compose(MySecondMiddleware).
+		Compose(MyThirdMiddleware).
+		Compose(stackThree)
+
+	// Our actual handler. The custom middlewarec.Handler type accepts a context.Context
+	// in addition to the standard http.ResponseWriter and *http.Request params from the
+	// regular http.Handler type
+	handler := middlewarec.HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+		valueFromContext := c.Value(0).(string)
+		fmt.Fprintf(w, "Handler - %s", valueFromContext)
+	})
+
+	// Our context aware handlers can actually be used as a regular http.Handler. 
+	// In this case context.Background() will be used as the root context for the request
+	http.Handle("/one", stackOne(handler))
+
+	// If we want more control over the context that is sent through our middleware stack, 
+	// then we can use AsHttpHandlerWithContext()
+	myCustomContext := appendToContextValue(context.Background(), "Custom Value\n")
+	http.Handle("/two", stackTwo(handler).AsHttpHandlerWithContext(myCustomContext))
+
+	http.Handle("/three", stackThree(handler))
+	http.Handle("/four", stackFour(handler))
+
+	http.ListenAndServe(":8080", nil)
+}
 ```

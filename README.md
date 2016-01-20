@@ -1,10 +1,9 @@
 # go-middleware
-Composable http middleware for golang
 [![Build Status](https://travis-ci.org/bernos/go-middleware.svg)](https://travis-ci.org/bernos/go-middleware)
 
-Middleware is defined as
+Composable http middleware for golang. Middleware is defined as
 
-```golang
+```go
 type Middleware func(http.Handler) http.Handler
 ```
 

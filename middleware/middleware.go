@@ -27,6 +27,13 @@ func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m(defaultHandler).ServeHTTP(w, r)
 }
 
+// Then is just a proxy to calling the middleware function directly with
+// the provided handler. It is just some syntactic sugar that allows for
+// method chaining
+func (m Middleware) Then(handler http.Handler) http.Handler {
+	return m(handler)
+}
+
 // Id returns a middleware that will return the provided http.Handler
 func Id() Middleware {
 	return Middleware(func(next http.Handler) http.Handler {

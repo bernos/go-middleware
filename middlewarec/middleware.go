@@ -17,6 +17,10 @@ func (m Middleware) Compose(next Middleware) Middleware {
 	return Compose(m, next)
 }
 
+func (m Middleware) Then(handler Handler) Handler {
+	return m(handler)
+}
+
 func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.AsHttpHandler().ServeHTTP(w, r)
 }

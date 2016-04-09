@@ -68,6 +68,16 @@ func TestIdCompose(t *testing.T) {
 	testutils.RunTest(Id().Compose(a).Compose(b)(handler).AsHttpHandler(), "AB", t)
 }
 
+func TestFromMiddleware(t *testing.T) {
+	mw := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	testutils.RunTest(ComposeAll(a, FromMiddleware(mw), b, c)(handler), "ABC", t)
+}
+
 func TestAssociativity(t *testing.T) {
 	ma := Compose(a, Compose(b, c))
 	mb := Compose(Compose(a, b), c)

@@ -56,6 +56,16 @@ func ComposeAll(middlewares ...Middleware) Middleware {
 	return fold(Compose, middlewares[0], middlewares[1:])
 }
 
+func FromMiddleware(mw func(http.Handler) http.Handler) Middleware {
+	return func(next Handler) Handler {
+		return HandlerFunc(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+			mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				next.ServeHTTPC(c, w, r)
+			})).ServeHTTP(w, r)
+		})
+	}
+}
+
 func fold(f MiddlewareReducer, x Middleware, xs []Middleware) Middleware {
 	for _, m := range xs {
 		x = f(x, m)

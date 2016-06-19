@@ -1,5 +1,5 @@
 # go-middleware
-[![Build Status](https://travis-ci.org/bernos/go-middleware.svg)](https://travis-ci.org/bernos/go-middleware)
+[![Build Status](https://travis-ci.org/bernos/go-middleware.svg?branch=master)](https://travis-ci.org/bernos/go-middleware)&nbsp;[![GoDoc](https://godoc.org/github.com/bernos/go-middleware?status.svg)](https://godoc.org/github.com/bernos/go-middleware)
 
 Composable http middleware for golang. Middleware is defined as
 

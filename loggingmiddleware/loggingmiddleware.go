@@ -1,7 +1,9 @@
 package loggingmiddleware
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/bernos/go-middleware/middleware"
@@ -33,4 +35,22 @@ type RequestInfo struct {
 	Request *http.Request
 	Status  int
 	Latency time.Duration
+}
+
+func (r RequestInfo) AsMap() map[string]interface{} {
+	fields := map[string]interface{}{
+		"http_host": r.Request.Host,
+		"method":    r.Request.Method,
+		"uri":       r.Request.RequestURI,
+		"remote":    r.Request.RemoteAddr,
+		"status":    r.Status,
+		"latency":   r.Latency,
+	}
+
+	for k, v := range r.Request.Header {
+		name := strings.ToLower(fmt.Sprintf("http_%s", strings.Replace(k, "-", "_", -1)))
+		fields[name] = v
+	}
+
+	return fields
 }

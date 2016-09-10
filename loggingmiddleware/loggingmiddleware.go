@@ -14,7 +14,8 @@ func New(log func(RequestInfo)) middleware.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			lw := WrapWriter(w)
+
+			lw := &responseWriterWrapper{w, false, 0}
 
 			next.ServeHTTP(lw, r)
 
@@ -53,4 +54,23 @@ func (r RequestInfo) AsMap() map[string]interface{} {
 	}
 
 	return fields
+}
+
+type responseWriterWrapper struct {
+	http.ResponseWriter
+	wroteHeader bool
+	status      int
+}
+
+func (w *responseWriterWrapper) Status() int {
+	return w.status
+}
+
+func (w *responseWriterWrapper) WriteHeader(status int) {
+	if !w.wroteHeader {
+		w.status = status
+		w.wroteHeader = true
+	}
+
+	w.ResponseWriter.WriteHeader(status)
 }

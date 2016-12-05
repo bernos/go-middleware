@@ -10,7 +10,13 @@ import (
 	"github.com/bernos/go-middleware/middlewarec"
 )
 
-func New(log func(RequestInfo)) middleware.Middleware {
+func New(options ...func(*options)) middleware.Middleware {
+	cfg := defaultOptions()
+
+	for _, o := range options {
+		o(cfg)
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -19,7 +25,7 @@ func New(log func(RequestInfo)) middleware.Middleware {
 
 			next.ServeHTTP(lw, r)
 
-			log(RequestInfo{
+			cfg.logger(RequestInfo{
 				Request: r,
 				Status:  lw.Status(),
 				Latency: time.Since(start),

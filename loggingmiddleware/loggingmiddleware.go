@@ -34,8 +34,8 @@ func New(options ...func(*options)) middleware.Middleware {
 	}
 }
 
-func NewC(log func(RequestInfo)) middlewarec.Middleware {
-	return middlewarec.FromMiddleware(New(log))
+func NewC(options ...func(*options)) middlewarec.Middleware {
+	return middlewarec.FromMiddleware(New(options...))
 }
 
 type RequestInfo struct {

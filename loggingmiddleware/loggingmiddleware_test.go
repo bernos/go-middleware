@@ -54,7 +54,7 @@ func runTest(t *testing.T, fn func(RequestInfo), r *http.Request, h http.Handler
 		info = i
 	}
 
-	mw := New(log)
+	mw := New(WithLogger(log))
 	w := httptest.NewRecorder()
 
 	if h == nil {

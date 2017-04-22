@@ -1,0 +1,116 @@
+package bodyparsermiddleware
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+
+	"github.com/bernos/go-middleware/middleware"
+)
+
+type key int
+
+const ctxKey key = 0
+
+// Decoder decodes a request body
+type Decoder interface {
+	Decode(interface{}) error
+}
+
+// BodyParser uses Decoder to parse a request body
+type BodyParser func(Decoder) (interface{}, error)
+
+// NewContext adds a parsed request body to a context
+func NewContext(parent context.Context, body interface{}) context.Context {
+	return context.WithValue(parent, ctxKey, body)
+}
+
+// FromContext retrieves the parsed request body from the context
+func FromContext(ctx context.Context) (interface{}, bool) {
+	body := ctx.Value(ctxKey)
+	return body, body != nil
+}
+
+// UpdateRequest adds a parsed request body to a context
+func UpdateRequest(r *http.Request, body interface{}) *http.Request {
+	ctx := NewContext(r.Context(), body)
+	return r.WithContext(ctx)
+}
+
+// FromRequest returns the parsed body from the request, and a bool indicating
+// whether any resource was found
+func FromRequest(r *http.Request) (interface{}, bool) {
+	return FromContext(r.Context())
+}
+
+func ParseJSONBody(parser BodyParser, options ...func(*options)) middleware.Middleware {
+	options = append(options, WithJSONDecoder())
+	return ParseBody(parser, options...)
+}
+
+// ParseBody creates an http middleware from a BodyParser. The middleware will use the
+// BodyParser to parse the request body and add it to the request context. If the BodyParser
+// returns an error then the configured error handler will be called
+func ParseBody(parser BodyParser, options ...func(*options)) middleware.Middleware {
+	cfg := defaultOptions()
+
+	for _, o := range options {
+		o(cfg)
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer r.Body.Close()
+
+			shouldContinue := true
+
+			if r.Body != nil {
+				decoder := cfg.decoder(r)
+				body, err := parser(decoder)
+
+				if err != nil {
+					shouldContinue = cfg.errorHandler(err, w, r)
+				} else {
+					r = UpdateRequest(r, body)
+				}
+			}
+
+			if shouldContinue {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
+}
+
+type options struct {
+	decoder      func(*http.Request) Decoder
+	errorHandler func(error, http.ResponseWriter, *http.Request) bool
+}
+
+func defaultOptions() *options {
+	return &options{
+		decoder:      jsonDecoder,
+		errorHandler: defaultErrorHandler,
+	}
+}
+
+func WithJSONDecoder() func(*options) {
+	return func(o *options) {
+		o.decoder = jsonDecoder
+	}
+}
+
+func WithErrorHandler(h func(error, http.ResponseWriter, *http.Request) bool) func(*options) {
+	return func(o *options) {
+		o.errorHandler = h
+	}
+}
+
+func jsonDecoder(r *http.Request) Decoder {
+	return json.NewDecoder(r.Body)
+}
+
+func defaultErrorHandler(err error, w http.ResponseWriter, r *http.Request) bool {
+	http.Error(w, "Invalid Request", http.StatusBadRequest)
+	return false
+}

@@ -11,7 +11,8 @@ import (
 type key int
 
 const (
-	ctxKey key = 0
+	ctxKey       key = 0
+	validatorKey key = 1
 
 	defaultMaxMemory = 32 << 20 // 32 mb
 )
@@ -59,6 +60,26 @@ func ParseJSONBody(parser BodyParser, options ...func(*options)) middleware.Midd
 	return ParseBody(parser, options...)
 }
 
+func setValidator(r *http.Request, fn func(interface{}) error) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), validatorKey, fn))
+}
+
+func Validate(r *http.Request) error {
+	fn, ok := r.Context().Value(validatorKey).(func(interface{}) error)
+
+	if !ok || fn == nil {
+		return nil
+	}
+
+	value, ok := FromRequest(r)
+
+	if !ok {
+		return nil
+	}
+
+	return fn(value)
+}
+
 // ParseBody creates an http middleware from a BodyParser. The middleware will use the
 // BodyParser to parse the request body and add it to the request context. If the BodyParser
 // returns an error then the configured error handler will be called
@@ -73,6 +94,9 @@ func ParseBody(parser BodyParser, options ...func(*options)) middleware.Middlewa
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer r.Body.Close()
 
+			// Add validator to the request context so it can be used by Validate()
+			r = setValidator(r, cfg.validator)
+
 			shouldContinue := true
 
 			if r.Body != nil {
@@ -82,14 +106,8 @@ func ParseBody(parser BodyParser, options ...func(*options)) middleware.Middlewa
 				if err != nil {
 					shouldContinue = cfg.errorHandler(err, w, r)
 				} else {
-					err := cfg.validator(body)
-
-					if err != nil {
-						shouldContinue = cfg.errorHandler(err, w, r)
-					}
+					r = UpdateRequest(r, body)
 				}
-
-				r = UpdateRequest(r, body)
 			}
 
 			if shouldContinue {
@@ -118,14 +136,8 @@ func ParseForm(parser FormParser, options ...func(*options)) middleware.Middlewa
 			if err != nil {
 				shouldContinue = cfg.errorHandler(err, w, r)
 			} else {
-				err := cfg.validator(body)
-
-				if err != nil {
-					shouldContinue = cfg.errorHandler(err, w, r)
-				}
+				r = UpdateRequest(r, body)
 			}
-
-			r = UpdateRequest(r, body)
 
 			if shouldContinue {
 				next.ServeHTTP(w, r)

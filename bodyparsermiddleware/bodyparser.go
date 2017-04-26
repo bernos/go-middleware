@@ -113,25 +113,19 @@ func ParseForm(parser FormParser, options ...func(*options)) middleware.Middlewa
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			shouldContinue := true
 
-			err := r.ParseMultipartForm(cfg.maxMemory)
+			body, err := parser(r)
 
 			if err != nil {
 				shouldContinue = cfg.errorHandler(err, w, r)
 			} else {
-				body, err := parser(r)
+				err := cfg.validator(body)
 
 				if err != nil {
 					shouldContinue = cfg.errorHandler(err, w, r)
-				} else {
-					err := cfg.validator(body)
-
-					if err != nil {
-						shouldContinue = cfg.errorHandler(err, w, r)
-					}
 				}
-
-				r = UpdateRequest(r, body)
 			}
+
+			r = UpdateRequest(r, body)
 
 			if shouldContinue {
 				next.ServeHTTP(w, r)

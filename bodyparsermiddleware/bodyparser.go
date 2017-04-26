@@ -20,6 +20,9 @@ type Decoder interface {
 // BodyParser uses Decoder to parse a request body
 type BodyParser func(Decoder) (interface{}, error)
 
+// FormParser parses a form into a struct
+type FormParser func(*http.Request) (interface{}, error)
+
 // NewContext adds a parsed request body to a context
 func NewContext(parent context.Context, body interface{}) context.Context {
 	return context.WithValue(parent, ctxKey, body)
@@ -67,6 +70,41 @@ func ParseBody(parser BodyParser, options ...func(*options)) middleware.Middlewa
 			if r.Body != nil {
 				decoder := cfg.decoder(r)
 				body, err := parser(decoder)
+
+				if err != nil {
+					shouldContinue = cfg.errorHandler(err, w, r)
+				} else {
+					r = UpdateRequest(r, body)
+				}
+			}
+
+			if shouldContinue {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
+}
+
+// ParseForm creates an http middleware from a FormParser. The middleware will use the
+// FormParser to parse the form in the request and add it to the request context. If the FormParser
+// returns an error then the configured error handler will be called
+func ParseForm(parser FormParser, options ...func(*options)) middleware.Middleware {
+	cfg := defaultOptions()
+
+	for _, o := range options {
+		o(cfg)
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			shouldContinue := true
+
+			err := r.ParseForm()
+
+			if err != nil {
+				shouldContinue = cfg.errorHandler(err, w, r)
+			} else {
+				body, err := parser(r)
 
 				if err != nil {
 					shouldContinue = cfg.errorHandler(err, w, r)

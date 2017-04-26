@@ -129,6 +129,10 @@ func ParseForm(parser FormParser, options ...func(*options)) middleware.Middlewa
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			// Add validator to the request context so it can be used by Validate()
+			r = setValidator(r, cfg.validator)
+
 			shouldContinue := true
 
 			body, err := parser(r)

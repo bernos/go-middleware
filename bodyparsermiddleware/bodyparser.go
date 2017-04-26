@@ -16,6 +16,10 @@ const (
 	defaultMaxMemory = 32 << 20 // 32 mb
 )
 
+type Validatable interface {
+	Validate() error
+}
+
 // Decoder decodes a request body
 type Decoder interface {
 	Decode(interface{}) error
@@ -78,8 +82,14 @@ func ParseBody(parser BodyParser, options ...func(*options)) middleware.Middlewa
 				if err != nil {
 					shouldContinue = cfg.errorHandler(err, w, r)
 				} else {
-					r = UpdateRequest(r, body)
+					err := cfg.validator(body)
+
+					if err != nil {
+						shouldContinue = cfg.errorHandler(err, w, r)
+					}
 				}
+
+				r = UpdateRequest(r, body)
 			}
 
 			if shouldContinue {
@@ -113,8 +123,14 @@ func ParseForm(parser FormParser, options ...func(*options)) middleware.Middlewa
 				if err != nil {
 					shouldContinue = cfg.errorHandler(err, w, r)
 				} else {
-					r = UpdateRequest(r, body)
+					err := cfg.validator(body)
+
+					if err != nil {
+						shouldContinue = cfg.errorHandler(err, w, r)
+					}
 				}
+
+				r = UpdateRequest(r, body)
 			}
 
 			if shouldContinue {
@@ -128,6 +144,7 @@ type options struct {
 	decoder      func(*http.Request) Decoder
 	errorHandler func(error, http.ResponseWriter, *http.Request) bool
 	maxMemory    int64
+	validator    func(interface{}) error
 }
 
 func defaultOptions() *options {
@@ -135,6 +152,7 @@ func defaultOptions() *options {
 		decoder:      jsonDecoder,
 		errorHandler: defaultErrorHandler,
 		maxMemory:    defaultMaxMemory,
+		validator:    defaultValidator,
 	}
 }
 
@@ -161,6 +179,16 @@ func jsonDecoder(r *http.Request) Decoder {
 }
 
 func defaultErrorHandler(err error, w http.ResponseWriter, r *http.Request) bool {
-	http.Error(w, "Invalid Request", http.StatusBadRequest)
+	http.Error(w, err.Error(), http.StatusBadRequest)
 	return false
+}
+
+func defaultValidator(x interface{}) error {
+	v, ok := x.(Validatable)
+
+	if ok {
+		return v.Validate()
+	}
+
+	return nil
 }

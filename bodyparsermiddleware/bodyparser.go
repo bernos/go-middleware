@@ -10,7 +10,11 @@ import (
 
 type key int
 
-const ctxKey key = 0
+const (
+	ctxKey key = 0
+
+	defaultMaxMemory = 32 << 20 // 32 mb
+)
 
 // Decoder decodes a request body
 type Decoder interface {
@@ -99,7 +103,7 @@ func ParseForm(parser FormParser, options ...func(*options)) middleware.Middlewa
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			shouldContinue := true
 
-			err := r.ParseForm()
+			err := r.ParseMultipartForm(cfg.maxMemory)
 
 			if err != nil {
 				shouldContinue = cfg.errorHandler(err, w, r)
@@ -123,12 +127,20 @@ func ParseForm(parser FormParser, options ...func(*options)) middleware.Middlewa
 type options struct {
 	decoder      func(*http.Request) Decoder
 	errorHandler func(error, http.ResponseWriter, *http.Request) bool
+	maxMemory    int64
 }
 
 func defaultOptions() *options {
 	return &options{
 		decoder:      jsonDecoder,
 		errorHandler: defaultErrorHandler,
+		maxMemory:    defaultMaxMemory,
+	}
+}
+
+func WithMaxMemory(x int64) func(*options) {
+	return func(o *options) {
+		o.maxMemory = x
 	}
 }
 

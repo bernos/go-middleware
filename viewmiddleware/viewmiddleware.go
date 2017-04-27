@@ -8,6 +8,8 @@ import (
 	"github.com/bernos/go-middleware/resourceloadermiddleware"
 )
 
+var defaultTemplate = template.Must(template.New("_default").Parse(`This is the default template`))
+
 type options struct {
 	viewModelProvider func(r *http.Request) interface{}
 	templateProvider  func(r *http.Request) *template.Template
@@ -34,6 +36,10 @@ func defaultViewModelProvider(r *http.Request) interface{} {
 
 func defaultTemplateProvider(t *template.Template) func(*http.Request) *template.Template {
 	return func(r *http.Request) *template.Template {
+		if t == nil {
+			t = defaultTemplate
+		}
+
 		return t
 	}
 }

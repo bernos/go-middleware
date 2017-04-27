@@ -70,8 +70,8 @@ func WithDefaultTemplate(t *template.Template) func(*options) {
 	}
 }
 
-func View(t *template.Template, options ...func(*options)) middleware.Middleware {
-	cfg := defaultOptions(t)
+func RenderView(defaultTemplate *template.Template, options ...func(*options)) middleware.Middleware {
+	cfg := defaultOptions(defaultTemplate)
 
 	for _, o := range options {
 		o(cfg)
@@ -93,6 +93,29 @@ func View(t *template.Template, options ...func(*options)) middleware.Middleware
 			if shouldContinue {
 				next.ServeHTTP(w, r)
 			}
+		})
+	}
+}
+
+type View struct {
+	Template *template.Template
+	Model    interface{}
+}
+
+func BuildView(fn func(*http.Request) *View) middleware.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			view := fn(r)
+
+			if view.Template != nil {
+				r = RequestWithTemplate(r, view.Template)
+			}
+
+			if view.Model != nil {
+				r = RequestWithViewModel(r, view.Model)
+			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }

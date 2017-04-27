@@ -65,7 +65,7 @@ func WithDefaultTemplate(t *template.Template) func(*options) {
 	}
 }
 
-func View(t *template.Template, options ...func(*options)) middleware.Middleware {
+func View(options ...func(*options)) middleware.Middleware {
 	cfg := defaultOptions()
 
 	for _, o := range options {

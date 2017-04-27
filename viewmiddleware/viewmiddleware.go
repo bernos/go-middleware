@@ -8,20 +8,17 @@ import (
 	"github.com/bernos/go-middleware/resourceloadermiddleware"
 )
 
-var (
-	defaultTemplate = template.Must(template.New("_default").Parse(`This is the default template`))
-)
-
 type options struct {
 	viewModelProvider func(r *http.Request) interface{}
 	templateProvider  func(r *http.Request) *template.Template
 	errorHandler      func(error, http.ResponseWriter, *http.Request) bool
 }
 
-func defaultOptions() *options {
+func defaultOptions(t *template.Template) *options {
 	return &options{
 		viewModelProvider: defaultViewModelProvider,
 		errorHandler:      defaultErrorHandler,
+		templateProvider:  defaultTemplateProvider(t),
 	}
 }
 
@@ -35,8 +32,10 @@ func defaultViewModelProvider(r *http.Request) interface{} {
 	return m
 }
 
-func defaultTemplateProvider(r *http.Request) *template.Template {
-	return defaultTemplate
+func defaultTemplateProvider(t *template.Template) func(*http.Request) *template.Template {
+	return func(r *http.Request) *template.Template {
+		return t
+	}
 }
 
 func WithErrorHandler(h func(error, http.ResponseWriter, *http.Request) bool) func(*options) {
@@ -65,8 +64,8 @@ func WithDefaultTemplate(t *template.Template) func(*options) {
 	}
 }
 
-func View(options ...func(*options)) middleware.Middleware {
-	cfg := defaultOptions()
+func View(t *template.Template, options ...func(*options)) middleware.Middleware {
+	cfg := defaultOptions(t)
 
 	for _, o := range options {
 		o(cfg)

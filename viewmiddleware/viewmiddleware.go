@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/bernos/go-middleware/bodyparsermiddleware"
 	"github.com/bernos/go-middleware/middleware"
 	"github.com/bernos/go-middleware/resourceloadermiddleware"
 )
@@ -84,7 +85,17 @@ func RenderView(defaultTemplate *template.Template, options ...func(*options)) m
 
 			shouldContinue := true
 
-			err := t.Execute(w, m)
+			vm := struct {
+				Model           interface{}
+				Error           error
+				ValidationError error
+			}{
+				Model:           m,
+				Error:           nil,
+				ValidationError: bodyparsermiddleware.Validate(r),
+			}
+
+			err := t.Execute(w, vm)
 
 			if err != nil {
 				shouldContinue = cfg.errorHandler(err, w, r)

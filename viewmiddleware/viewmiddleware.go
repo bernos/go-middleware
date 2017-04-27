@@ -25,7 +25,7 @@ func defaultOptions(t *template.Template) *options {
 }
 
 func defaultErrorHandler(err error, w http.ResponseWriter, r *http.Request) bool {
-	http.Error(w, "Failed to render template", http.StatusInternalServerError)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 	return false
 }
 

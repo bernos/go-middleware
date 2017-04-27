@@ -2,7 +2,6 @@ package viewmiddleware
 
 import (
 	"context"
-	"html/template"
 	"net/http"
 )
 
@@ -11,60 +10,79 @@ type key int
 const (
 	viewModelKey key = 0
 	templateKey  key = 1
+	viewKey      key = 2
 )
 
-func RequestWithViewModel(r *http.Request, m interface{}) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), viewModelKey, m))
+// NewContext adds a view to context
+func NewContext(parent context.Context, view *View) context.Context {
+	return context.WithValue(parent, viewKey, view)
 }
 
-func RequestWithTemplate(r *http.Request, t *template.Template) *http.Request {
-	return r.WithContext(context.WithValue(r.Context(), templateKey, t))
-}
+// FromContext retrieves the view from context
+func FromContext(ctx context.Context) *View {
+	view, ok := ctx.Value(viewKey).(*View)
 
-func GetViewModel(r *http.Request, defaultModel interface{}) interface{} {
-	model := r.Context().Value(viewModelKey)
-
-	if model == nil {
-		model = defaultModel
+	if ok {
+		return view
 	}
 
-	return model
+	return nil
 }
 
-func GetTemplate(r *http.Request, defaultTemplate *template.Template) *template.Template {
-	t, ok := r.Context().Value(templateKey).(*template.Template)
-
-	if !ok {
-		t = defaultTemplate
-	}
-
-	return t
+// UpdateRequest sets the view for a request
+func UpdateRequest(r *http.Request, view *View) *http.Request {
+	return r.WithContext(NewContext(r.Context(), view))
 }
 
-type Request struct {
-	*http.Request
+// FromRequest retrieves the view from a request
+func FromRequest(r *http.Request) *View {
+	return FromContext(r.Context())
 }
 
-func NewRequest(r *http.Request) *Request {
-	return &Request{r}
-}
+// func GetViewModel(r *http.Request, defaultModel interface{}) interface{} {
+// 	model := r.Context().Value(viewModelKey)
 
-func (r *Request) WithViewModel(m interface{}) *Request {
-	return &Request{RequestWithViewModel(r.HTTPRequest(), m)}
-}
+// 	if model == nil {
+// 		model = defaultModel
+// 	}
 
-func (r *Request) WithTemplate(t *template.Template) *Request {
-	return &Request{RequestWithTemplate(r.HTTPRequest(), t)}
-}
+// 	return model
+// }
 
-func (r *Request) GetViewModel(defaultValue interface{}) interface{} {
-	return GetViewModel(r.HTTPRequest(), defaultValue)
-}
+// func GetTemplate(r *http.Request, defaultTemplate *template.Template) *template.Template {
+// 	t, ok := r.Context().Value(templateKey).(*template.Template)
 
-func (r *Request) GetTemplate(defaultTemplate *template.Template) *template.Template {
-	return GetTemplate(r.HTTPRequest(), defaultTemplate)
-}
+// 	if !ok {
+// 		t = defaultTemplate
+// 	}
 
-func (r *Request) HTTPRequest() *http.Request {
-	return r.Request
-}
+// 	return t
+// }
+
+// type Request struct {
+// 	*http.Request
+// }
+
+// func NewRequest(r *http.Request) *Request {
+// 	return &Request{r}
+// }
+
+// func (r *Request) WithViewModel(m interface{}) *Request {
+// 	return &Request{RequestWithViewModel(r.HTTPRequest(), m)}
+// }
+
+// func (r *Request) WithTemplate(t *template.Template) *Request {
+// 	return &Request{RequestWithTemplate(r.HTTPRequest(), t)}
+// }
+
+// func (r *Request) GetViewModel(defaultValue interface{}) interface{} {
+// 	return GetViewModel(r.HTTPRequest(), defaultValue)
+// }
+
+// func (r *Request) GetTemplate(defaultTemplate *template.Template) *template.Template {
+// 	return GetTemplate(r.HTTPRequest(), defaultTemplate)
+// }
+
+// func (r *Request) HTTPRequest() *http.Request {
+// 	return r.Request
+// }

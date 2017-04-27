@@ -1,7 +1,6 @@
 package viewmiddleware
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 
@@ -93,9 +92,6 @@ func View(t *template.Template, options ...func(*options)) middleware.Middleware
 
 			if shouldContinue {
 				next.ServeHTTP(w, r)
-				fmt.Printf("=============================================\n")
-				fmt.Printf("After next, viewmodel is %v\n", GetViewModel(r, nil))
-				fmt.Printf("=============================================\n")
 			}
 		})
 	}

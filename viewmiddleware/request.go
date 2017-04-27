@@ -14,15 +14,11 @@ const (
 )
 
 func RequestWithViewModel(r *http.Request, m interface{}) *http.Request {
-	// return r.WithContext(context.WithValue(r.Context(), viewModelKey, m))
-	*r = *(r.WithContext(context.WithValue(r.Context(), viewModelKey, m)))
-	return r
+	return r.WithContext(context.WithValue(r.Context(), viewModelKey, m))
 }
 
 func RequestWithTemplate(r *http.Request, t *template.Template) *http.Request {
-	// return r.WithContext(context.WithValue(r.Context(), templateKey, t))
-	*r = *(r.WithContext(context.WithValue(r.Context(), templateKey, t)))
-	return r
+	return r.WithContext(context.WithValue(r.Context(), templateKey, t))
 }
 
 func GetViewModel(r *http.Request, defaultModel interface{}) interface{} {

@@ -14,11 +14,11 @@ func NewContext(parent context.Context, err *Error) context.Context {
 }
 
 func UpdateRequest(r *http.Request, err error, status int) *http.Request {
-	return r.WithContext(NewContext(r.Context(), &Error{err, status}))
+	return r.WithContext(NewContext(r.Context(), NewError(err, status)))
 }
 
-func FromContext(ctx context.Context) *Error {
-	err, ok := ctx.Value(errorKey).(*Error)
+func FromContext(ctx context.Context) error {
+	err, ok := ctx.Value(errorKey).(error)
 
 	if !ok {
 		return nil
@@ -27,6 +27,6 @@ func FromContext(ctx context.Context) *Error {
 	return err
 }
 
-func FromRequest(r *http.Request) *Error {
+func FromRequest(r *http.Request) error {
 	return FromContext(r.Context())
 }

@@ -40,7 +40,7 @@ func HaltOnError() func(*options) {
 	}
 }
 
-func WithErrorTemplate(t *template.Template) func(*options) {
+func WithTemplate(t *template.Template) func(*options) {
 	return func(o *options) {
 		o.errorHandler = func(e error, w http.ResponseWriter, r *http.Request) {
 			t.Execute(w, e)

@@ -75,14 +75,6 @@ func HandlerFunc(fn func(http.ResponseWriter, *http.Request) (*View, error)) mid
 	}
 }
 
-func BuildView(fn func(*http.Request) *View) middleware.Middleware {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, UpdateRequest(r, fn(r)))
-		})
-	}
-}
-
 func templateOrDefault(v *View, r *http.Request, fn func(*http.Request) *template.Template) *template.Template {
 	if v == nil || v.Template == nil {
 		return fn(r)

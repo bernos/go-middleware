@@ -33,17 +33,16 @@ func HandleErrors(options ...func(*options)) middleware.Middleware {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			shouldContinue := true
 			err := FromRequest(r)
 
 			if err != nil {
 				w.Header().Set("X-Content-Type-Options", "nosniff")
 				w.WriteHeader(getErrorStatus(err))
 
-				shouldContinue = cfg.errorHandler(err, w, r)
+				cfg.errorHandler(err, w, r)
 			}
 
-			if shouldContinue {
+			if cfg.continueOnError {
 				next.ServeHTTP(w, r)
 			}
 		})

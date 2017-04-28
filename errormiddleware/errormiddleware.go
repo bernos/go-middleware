@@ -1,7 +1,6 @@
 package errormiddleware
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/bernos/go-middleware/middleware"
@@ -24,17 +23,25 @@ func NewError(err error, status int) *Error {
 	return &Error{err, status}
 }
 
-func HandleErrors() middleware.Middleware {
+func HandleErrors(options ...func(*options)) middleware.Middleware {
+	cfg := defaultOptions()
+
+	for _, o := range options {
+		o(cfg)
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+			shouldContinue := true
 			err := FromRequest(r)
 
-			fmt.Printf("==============================\n")
-			fmt.Printf(" ERROR: %s\n", err)
-			fmt.Printf("==============================\n")
+			if err != nil {
+				shouldContinue = cfg.errorHandler(err, w, r)
+			}
 
-			next.ServeHTTP(w, r)
+			if shouldContinue {
+				next.ServeHTTP(w, r)
+			}
 		})
 	}
 }

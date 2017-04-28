@@ -1,22 +1,22 @@
 package viewmiddleware
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 
 	"github.com/bernos/go-middleware/bodyparsermiddleware"
+	"github.com/bernos/go-middleware/errormiddleware"
 	"github.com/bernos/go-middleware/middleware"
 )
-
-var defaultTemplate = template.Must(template.New("_default").Parse(`This is the default template`))
 
 type View struct {
 	Template *template.Template
 	Model    interface{}
 }
 
-func RenderView(defaultTemplate *template.Template, options ...func(*options)) middleware.Middleware {
-	cfg := defaultOptions(defaultTemplate)
+func RenderView(options ...func(*options)) middleware.Middleware {
+	cfg := defaultOptions()
 
 	for _, o := range options {
 		o(cfg)
@@ -25,29 +25,52 @@ func RenderView(defaultTemplate *template.Template, options ...func(*options)) m
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			v := FromRequest(r)
-			t := templateOrDefault(v, r, cfg.templateProvider)
-			m := modelOrDefault(v, r, cfg.viewModelProvider)
 
-			vm := struct {
-				Model           interface{}
-				Error           error
-				ValidationError error
-			}{
-				Model:           m,
-				Error:           nil,
-				ValidationError: bodyparsermiddleware.Validate(r),
+			if v != nil {
+				t := v.Template
+
+				if t == nil {
+					t = cfg.defaultTemplate
+				}
+
+				if t == nil {
+					r = errormiddleware.UpdateRequest(r, fmt.Errorf("No template specified for this view"), http.StatusInternalServerError)
+				} else {
+					vm := struct {
+						Model           interface{}
+						ValidationError error
+					}{
+						Model:           v.Model,
+						ValidationError: bodyparsermiddleware.Validate(r),
+					}
+
+					err := t.Execute(w, vm)
+
+					if err != nil {
+						r = errormiddleware.UpdateRequest(r, err, http.StatusInternalServerError)
+					}
+				}
 			}
 
-			shouldContinue := true
-			err := t.Execute(w, vm)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func HandlerFunc(fn func(http.ResponseWriter, *http.Request) (*View, error)) middleware.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			v, err := fn(w, r)
 
 			if err != nil {
-				shouldContinue = cfg.errorHandler(err, w, r)
+				r = errormiddleware.UpdateRequest(r, err, http.StatusInternalServerError)
 			}
 
-			if shouldContinue {
-				next.ServeHTTP(w, r)
+			if v != nil {
+				r = UpdateRequest(r, v)
 			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }

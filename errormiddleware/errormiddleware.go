@@ -20,6 +20,10 @@ func (err *Error) Status() int {
 	return err.status
 }
 
+func NewError(err error, status int) *Error {
+	return &Error{err, status}
+}
+
 func HandleErrors() middleware.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +33,20 @@ func HandleErrors() middleware.Middleware {
 			fmt.Printf("==============================\n")
 			fmt.Printf(" ERROR: %s\n", err)
 			fmt.Printf("==============================\n")
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func HandlerFunc(fn func(http.ResponseWriter, *http.Request) *Error) middleware.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			err := fn(w, r)
+
+			if err != nil {
+				r = UpdateRequest(r, err.err, err.status)
+			}
 
 			next.ServeHTTP(w, r)
 		})

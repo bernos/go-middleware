@@ -1,6 +1,9 @@
 package errormiddleware
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 type options struct {
 	errorHandler func(error, http.ResponseWriter, *http.Request) bool
@@ -13,7 +16,7 @@ func defaultOptions() *options {
 }
 
 func defaultErrorHandler(e error, w http.ResponseWriter, r *http.Request) bool {
-	http.Error(w, e.Error(), getErrorStatus(e))
+	fmt.Fprintln(w, e.Error())
 	return false
 }
 
@@ -26,7 +29,7 @@ func WithErrorHandler(fn func(error, http.ResponseWriter, *http.Request) bool) f
 func ContinueOnError() func(*options) {
 	return func(o *options) {
 		o.errorHandler = func(e error, w http.ResponseWriter, r *http.Request) bool {
-			http.Error(w, e.Error(), getErrorStatus(e))
+			fmt.Fprintln(w, e.Error())
 			return true
 		}
 	}

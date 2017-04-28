@@ -37,6 +37,9 @@ func HandleErrors(options ...func(*options)) middleware.Middleware {
 			err := FromRequest(r)
 
 			if err != nil {
+				w.Header().Set("X-Content-Type-Options", "nosniff")
+				w.WriteHeader(getErrorStatus(err))
+
 				shouldContinue = cfg.errorHandler(err, w, r)
 			}
 

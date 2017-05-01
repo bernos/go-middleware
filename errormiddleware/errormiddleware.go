@@ -1,6 +1,7 @@
 package errormiddleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/bernos/go-middleware/middleware"
@@ -22,6 +23,22 @@ func NewError(err error, status int) *Error {
 type HTTPError interface {
 	error
 	Status() int
+}
+
+func NotFound() HTTPError {
+	return &Error{fmt.Errorf("Resource not found"), http.StatusNotFound}
+}
+
+func InternalServerError() HTTPError {
+	return &Error{fmt.Errorf("Internal server error"), http.StatusInternalServerError}
+}
+
+func NotFoundRequest(r *http.Request) *http.Request {
+	return UpdateRequest(r, fmt.Errorf("Resource not found"), http.StatusNotFound)
+}
+
+func InternalServerErrorRequest(r *http.Request) *http.Request {
+	return UpdateRequest(r, fmt.Errorf("Internal server error"), http.StatusInternalServerError)
 }
 
 func HandleErrors(options ...func(*options)) middleware.Middleware {

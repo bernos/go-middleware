@@ -20,7 +20,7 @@ const ctxKey key = 0
 // ResourceLoader should return `nil, nil`. This will cause the configured not
 // found handler to be run for the request.
 type ResourceLoader interface {
-	Load(*http.Request) (interface{}, error)
+	LoadResource(*http.Request) (interface{}, error)
 }
 
 // ResourceLoaderFunc is an adapter that allows ordinary functions to be used as
@@ -28,7 +28,7 @@ type ResourceLoader interface {
 type ResourceLoaderFunc func(*http.Request) (interface{}, error)
 
 // Load calls f(r)
-func (f ResourceLoaderFunc) Load(r *http.Request) (interface{}, error) {
+func (f ResourceLoaderFunc) LoadResource(r *http.Request) (interface{}, error) {
 	return f(r)
 }
 
@@ -68,7 +68,7 @@ func LoadResource(loader ResourceLoader, options ...func(*options)) middleware.M
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			shouldContinue := true
-			resource, err := loader.Load(r)
+			resource, err := loader.LoadResource(r)
 
 			if err != nil {
 				shouldContinue = cfg.errorHandler(err, w, r)

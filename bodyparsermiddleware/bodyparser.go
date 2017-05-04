@@ -26,11 +26,27 @@ type Decoder interface {
 	Decode(interface{}) error
 }
 
+type BodyParser interface {
+	ParseBody(Decoder) (interface{}, error)
+}
+
 // BodyParser uses Decoder to parse a request body
-type BodyParser func(Decoder) (interface{}, error)
+type BodyParserFunc func(Decoder) (interface{}, error)
+
+func (fn BodyParserFunc) ParseBody(dec Decoder) (interface{}, error) {
+	return fn(dec)
+}
+
+type FormParser interface {
+	ParseForm(*http.Request) (interface{}, error)
+}
 
 // FormParser parses a form into a struct
-type FormParser func(*http.Request) (interface{}, error)
+type FormParserFunc func(*http.Request) (interface{}, error)
+
+func (fn FormParserFunc) ParseForm(r *http.Request) (interface{}, error) {
+	return fn(r)
+}
 
 // NewContext adds a parsed request body to a context
 func NewContext(parent context.Context, body interface{}) context.Context {
@@ -101,7 +117,7 @@ func ParseBody(parser BodyParser, options ...func(*options)) middleware.Middlewa
 
 			if r.Body != nil {
 				decoder := cfg.decoder(r)
-				body, err := parser(decoder)
+				body, err := parser.ParseBody(decoder)
 
 				if err != nil {
 					shouldContinue = cfg.errorHandler(err, w, r)
@@ -135,7 +151,7 @@ func ParseForm(parser FormParser, options ...func(*options)) middleware.Middlewa
 
 			shouldContinue := true
 
-			body, err := parser(r)
+			body, err := parser.ParseForm(r)
 
 			if err != nil {
 				shouldContinue = cfg.errorHandler(err, w, r)
